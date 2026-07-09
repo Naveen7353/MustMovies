@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MustMovies</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070707;
+      --panel: #141414;
+      --muted: #a3a3a3;
+      --text: #f5f5f5;
+      --red: #e50914;
+      --line: rgba(255, 255, 255, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 18px clamp(18px, 4vw, 56px);
+      background: linear-gradient(180deg, rgba(0,0,0,.86), rgba(0,0,0,.08));
+    }
+
+    .brand {
+      color: var(--red);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    nav {
+      display: flex;
+      gap: 18px;
+      color: #ddd;
+      font-size: .95rem;
+    }
+
+    .tools {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input, select {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, .58);
+      color: var(--text);
+      padding: 0 12px;
+      outline: none;
+    }
+
+    input { width: min(260px, 32vw); }
+
+    .hero {
+      min-height: 78vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+      gap: clamp(24px, 5vw, 72px);
+      align-items: end;
+      padding: 120px clamp(18px, 4vw, 56px) 72px;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.38), rgba(0,0,0,.8)),
+        linear-gradient(135deg, var(--hero-color), #050505 58%);
+    }
+
+    .hero-content { max-width: 640px; }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(3rem, 8vw, 6rem);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: #e5e5e5;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .match { color: #22c55e; }
+
+    .hero p {
+      max-width: 56ch;
+      color: #e7e7e7;
+      font-size: 1.12rem;
+      line-height: 1.5;
+    }
+
+    .actions { display: flex; gap: 12px; margin-top: 24px; }
+
+    button {
+      border: 0;
+      border-radius: 4px;
+      min-height: 42px;
+      padding: 0 18px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .play { background: #fff; color: #111; }
+    .secondary { background: rgba(109,109,110,.72); color: #fff; }
+
+    main { padding: 0 clamp(18px, 4vw, 56px) 48px; }
+
+    .row { margin-top: 28px; }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.25rem;
+    }
+
+    .rail {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(190px, 210px);
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      scrollbar-color: #555 transparent;
+    }
+
+    .card {
+      min-height: 332px;
+      border-radius: 6px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,.36);
+    }
+
+    .poster,
+    .hero-poster {
+      position: relative;
+      min-height: 276px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 24% 20%, rgba(255,255,255,.42), transparent 14%),
+        radial-gradient(circle at 72% 34%, var(--movie-accent), transparent 20%),
+        linear-gradient(145deg, var(--movie-color), #080808 68%);
+      text-align: left;
+    }
+
+    .hero-poster {
+      min-height: 430px;
+      border-radius: 8px;
+      box-shadow: 0 28px 80px rgba(0,0,0,.55);
+      transform: rotate(2deg);
+    }
+
+    .poster::before,
+    .hero-poster::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 5px;
+    }
+
+    .poster::after,
+    .hero-poster::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% 18% -20%;
+      height: 90px;
+      background: rgba(255,255,255,.08);
+      transform: rotate(-12deg);
+    }
+
+    .poster-top,
+    .poster-bottom {
+      position: relative;
+      z-index: 1;
+    }
+
+    .poster-kicker {
+      color: rgba(255,255,255,.82);
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .poster-title {
+      margin-top: auto;
+      font-size: 1.36rem;
+      line-height: 1;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .hero-poster .poster-title { font-size: 2.1rem; }
+
+    .poster-tag {
+      margin-top: 8px;
+      color: rgba(255,255,255,.78);
+      font-size: .76rem;
+      font-weight: 700;
+    }
+
+    .card-body { padding: 10px 12px 12px; }
+    .card-title { font-weight: 800; margin-bottom: 6px; }
+    .card .meta { font-size: .78rem; color: var(--muted); margin: 0; gap: 8px; }
+
+    dialog {
+      width: min(680px, calc(100vw - 28px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #101010;
+      color: var(--text);
+      padding: 0;
+    }
+
+    dialog::backdrop { background: rgba(0,0,0,.76); }
+
+    .modal-art {
+      min-height: 210px;
+      background:
+        radial-gradient(circle at 74% 32%, var(--movie-accent), transparent 18%),
+        linear-gradient(135deg, var(--movie-color), #111 70%);
+      padding: 24px;
+      display: flex;
+      align-items: end;
+    }
+
+    .modal-body { padding: 22px 24px 24px; }
+    .modal-body h3 { margin: 0 0 10px; font-size: 2rem; }
+    .modal-body p { color: #ddd; line-height: 1.55; }
+
+    .empty {
+      display: none;
+      color: var(--muted);
+      margin: 34px 0;
+    }
+
+    @media (max-width: 720px) {
+      header { align-items: flex-start; flex-direction: column; gap: 12px; }
+      nav { display: none; }
+      .tools { width: 100%; margin-left: 0; }
+      input { flex: 1; width: auto; }
+      select { width: 124px; }
+      .hero { grid-template-columns: 1fr; min-height: 72vh; padding-top: 152px; }
+      .hero-poster { display: none; }
+      .rail { grid-auto-columns: minmax(170px, 72vw); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">MustMovies</div>
+    <nav>
+      <span>Home</span>
+      <span>Series</span>
+      <span>Movies</span>
+      <span>My List</span>
+    </nav>
+    <div class="tools">
+      <input id="search" type="search" placeholder="Search titles">
+      <select id="genre">
+        <option value="">All genres</option>
+      </select>
+    </div>
+  </header>
+
+  <section class="hero" id="hero"></section>
+
+  <main id="catalog">
+    <p class="empty" id="empty">No titles match your search.</p>
+  </main>
+
+  <dialog id="details">
+    <div class="modal-art">
+      <h3 id="modal-title"></h3>
+    </div>
+    <div class="modal-body">
+      <div class="meta" id="modal-meta"></div>
+      <p id="modal-description"></p>
+      <div class="actions">
+        <button class="play">Play</button>
+        <button class="secondary" id="modal-list">+ My List</button>
+        <button class="secondary" id="close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const movies = [
+      { id: 1, title: "Midnight Signal", year: 2026, rating: "TV-14", genre: "Sci-Fi", duration: "1h 54m", match: 98, description: "A radio engineer catches a future broadcast and races to stop a citywide blackout.", color: "#c1121f", accent: "#facc15", posterTag: "Future transmission" },
+      { id: 2, title: "The Last Monsoon", year: 2025, rating: "PG-13", genre: "Drama", duration: "2h 08m", match: 95, description: "Three strangers meet on a delayed train as the rain changes the course of their lives.", color: "#0f766e", accent: "#f97316", posterTag: "Rain changes everything" },
+      { id: 3, title: "Code Red City", year: 2026, rating: "TV-MA", genre: "Action", duration: "1h 47m", match: 93, description: "A retired driver returns for one impossible night job through a locked-down metropolis.", color: "#991b1b", accent: "#38bdf8", posterTag: "One night. No rules." },
+      { id: 4, title: "Cafe Comet", year: 2024, rating: "U/A", genre: "Comedy", duration: "1h 31m", match: 90, description: "A tiny coffee shop becomes the meeting point for people with wonderfully bad timing.", color: "#b45309", accent: "#fde68a", posterTag: "Fresh chaos daily" },
+      { id: 5, title: "North Door", year: 2025, rating: "TV-14", genre: "Thriller", duration: "1h 59m", match: 96, description: "A journalist finds one door in an old hotel that appears in a different place every night.", color: "#334155", accent: "#e2e8f0", posterTag: "Do not open it" },
+      { id: 6, title: "Pixel Hearts", year: 2026, rating: "PG", genre: "Romance", duration: "1h 42m", match: 91, description: "Two indie game developers fall in love while building a project that keeps breaking.", color: "#be185d", accent: "#86efac", posterTag: "Love needs debugging" },
+      { id: 7, title: "Deep Orbit", year: 2023, rating: "TV-PG", genre: "Sci-Fi", duration: "2h 16m", match: 89, description: "A rescue crew reaches a silent research station and discovers it was never abandoned.", color: "#1d4ed8", accent: "#c4b5fd", posterTag: "Silence has gravity" },
+      { id: 8, title: "Street Food Kings", year: 2026, rating: "TV-G", genre: "Documentary", duration: "48m", match: 94, description: "Vendors across India share the craft, pressure, and pride behind their signature dishes.", color: "#15803d", accent: "#fbbf24", posterTag: "Served hot" }
+    ];
+
+    const rows = {
+      "Trending Now": [...movies].sort((a, b) => b.match - a.match).slice(0, 5),
+      "New Releases": [...movies].sort((a, b) => b.year - a.year).slice(0, 5),
+      "Because You Like Thrillers": movies.filter(movie => ["Thriller", "Action", "Sci-Fi"].includes(movie.genre)),
+      "Feel Good Picks": movies.filter(movie => ["Comedy", "Romance", "Documentary"].includes(movie.genre))
+    };
+
+    const search = document.querySelector("#search");
+    const genre = document.querySelector("#genre");
+    const empty = document.querySelector("#empty");
+    const catalog = document.querySelector("#catalog");
+    const dialog = document.querySelector("#details");
+    const watchlist = new Set(JSON.parse(localStorage.getItem("watchlist") || "[]"));
+
+    function poster(movie, className = "poster") {
+      return `<div class="${className}" style="--movie-color: ${movie.color}; --movie-accent: ${movie.accent}">
+        <div class="poster-top">
+          <div class="poster-kicker">${movie.genre} / ${movie.year}</div>
+        </div>
+        <div class="poster-bottom">
+          <div class="poster-title">${movie.title}</div>
+          <div class="poster-tag">${movie.posterTag}</div>
+        </div>
+      </div>`;
+    }
+
+    function card(movie) {
+      return `<article class="card" data-open="${movie.id}" data-title="${movie.title}" data-genre="${movie.genre}" style="--movie-color: ${movie.color}; --movie-accent: ${movie.accent}">
+        ${poster(movie)}
+        <div class="card-body">
+          <div class="card-title">${movie.title}</div>
+          <div class="meta">
+            <span class="match">${movie.match}%</span>
+            <span>${movie.year}</span>
+            <span>${movie.genre}</span>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function renderHero() {
+      const hero = movies[0];
+      document.querySelector("#hero").style.setProperty("--hero-color", hero.color);
+      document.querySelector("#hero").innerHTML = `<div class="hero-content">
+        <h1>${hero.title}</h1>
+        <div class="meta">
+          <span class="match">${hero.match}% Match</span>
+          <span>${hero.year}</span>
+          <span>${hero.rating}</span>
+          <span>${hero.duration}</span>
+        </div>
+        <p>${hero.description}</p>
+        <div class="actions">
+          <button class="play" data-open="${hero.id}">Play</button>
+          <button class="secondary" data-list="${hero.id}">+ My List</button>
+        </div>
+      </div>
+      ${poster(hero, "hero-poster")}`;
+    }
+
+    function renderRows() {
+      Object.entries(rows).forEach(([title, rowMovies]) => {
+        const section = document.createElement("section");
+        section.className = "row";
+        section.innerHTML = `<h2>${title}</h2><div class="rail">${rowMovies.map(card).join("")}</div>`;
+        catalog.insertBefore(section, empty);
+      });
+    }
+
+    function renderGenres() {
+      [...new Set(movies.map(movie => movie.genre))].sort().forEach(item => {
+        const option = document.createElement("option");
+        option.value = item;
+        option.textContent = item;
+        genre.appendChild(option);
+      });
+    }
+
+    function persistList() {
+      localStorage.setItem("watchlist", JSON.stringify([...watchlist]));
+    }
+
+    function openMovie(id) {
+      const movie = movies.find(item => item.id === Number(id));
+      if (!movie) return;
+      dialog.style.setProperty("--movie-color", movie.color);
+      dialog.style.setProperty("--movie-accent", movie.accent);
+      document.querySelector("#modal-title").textContent = movie.title;
+      document.querySelector("#modal-meta").innerHTML = `<span class="match">${movie.match}% Match</span><span>${movie.year}</span><span>${movie.rating}</span><span>${movie.genre}</span><span>${movie.duration}</span>`;
+      document.querySelector("#modal-description").textContent = movie.description;
+      document.querySelector("#modal-list").dataset.list = movie.id;
+      dialog.showModal();
+    }
+
+    function toggleList(id) {
+      const movieId = Number(id);
+      if (watchlist.has(movieId)) {
+        watchlist.delete(movieId);
+      } else {
+        watchlist.add(movieId);
+      }
+      persistList();
+      renderListButtons();
+    }
+
+    function renderListButtons() {
+      document.querySelectorAll("[data-list]").forEach(button => {
+        button.textContent = watchlist.has(Number(button.dataset.list)) ? "In My List" : "+ My List";
+      });
+    }
+
+    function filterCards() {
+      const term = search.value.trim().toLowerCase();
+      const pickedGenre = genre.value;
+      let visibleCount = 0;
+
+      document.querySelectorAll(".card").forEach(cardItem => {
+        const title = cardItem.dataset.title.toLowerCase();
+        const cardGenre = cardItem.dataset.genre;
+        const visible = title.includes(term) && (!pickedGenre || cardGenre === pickedGenre);
+        cardItem.hidden = !visible;
+        if (visible) visibleCount += 1;
+      });
+
+      document.querySelectorAll(".row").forEach(row => {
+        row.hidden = !row.querySelector(".card:not([hidden])");
+      });
+
+      empty.style.display = visibleCount ? "none" : "block";
+    }
+
+    document.addEventListener("click", event => {
+      const opener = event.target.closest("[data-open]");
+      const listButton = event.target.closest("[data-list]");
+      if (opener) openMovie(opener.dataset.open);
+      if (listButton) toggleList(listButton.dataset.list);
+    });
+
+    document.querySelector("#close").addEventListener("click", () => dialog.close());
+    search.addEventListener("input", filterCards);
+    genre.addEventListener("change", filterCards);
+
+    renderHero();
+    renderGenres();
+    renderRows();
+    renderListButtons();
+  </script>
+</body>
+</html>
