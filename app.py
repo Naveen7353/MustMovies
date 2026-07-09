@@ -1,6 +1,5 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from config import APP_NAME, HOST, PORT
@@ -17,6 +16,8 @@ MOVIES = [
         "match": 98,
         "description": "A radio engineer catches a future broadcast and races to stop a citywide blackout.",
         "color": "#c1121f",
+        "accent": "#facc15",
+        "poster_tag": "Future transmission",
     },
     {
         "id": 2,
@@ -28,6 +29,8 @@ MOVIES = [
         "match": 95,
         "description": "Three strangers meet on a delayed train as the rain changes the course of their lives.",
         "color": "#0f766e",
+        "accent": "#f97316",
+        "poster_tag": "Rain changes everything",
     },
     {
         "id": 3,
@@ -39,6 +42,8 @@ MOVIES = [
         "match": 93,
         "description": "A retired driver returns for one impossible night job through a locked-down metropolis.",
         "color": "#991b1b",
+        "accent": "#38bdf8",
+        "poster_tag": "One night. No rules.",
     },
     {
         "id": 4,
@@ -50,6 +55,8 @@ MOVIES = [
         "match": 90,
         "description": "A tiny coffee shop becomes the meeting point for people with wonderfully bad timing.",
         "color": "#b45309",
+        "accent": "#fde68a",
+        "poster_tag": "Fresh chaos daily",
     },
     {
         "id": 5,
@@ -61,6 +68,8 @@ MOVIES = [
         "match": 96,
         "description": "A journalist finds one door in an old hotel that appears in a different place every night.",
         "color": "#334155",
+        "accent": "#e2e8f0",
+        "poster_tag": "Do not open it",
     },
     {
         "id": 6,
@@ -72,6 +81,8 @@ MOVIES = [
         "match": 91,
         "description": "Two indie game developers fall in love while building a project that keeps breaking.",
         "color": "#be185d",
+        "accent": "#86efac",
+        "poster_tag": "Love needs debugging",
     },
     {
         "id": 7,
@@ -83,6 +94,8 @@ MOVIES = [
         "match": 89,
         "description": "A rescue crew reaches a silent research station and discovers it was never abandoned.",
         "color": "#1d4ed8",
+        "accent": "#c4b5fd",
+        "poster_tag": "Silence has gravity",
     },
     {
         "id": 8,
@@ -94,6 +107,8 @@ MOVIES = [
         "match": 94,
         "description": "Vendors across India share the craft, pressure, and pride behind their signature dishes.",
         "color": "#15803d",
+        "accent": "#fbbf24",
+        "poster_tag": "Served hot",
     },
 ]
 
@@ -187,6 +202,8 @@ def render_page():
     .hero {{
       min-height: 78vh;
       display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+      gap: clamp(24px, 5vw, 72px);
       align-items: end;
       padding: 120px clamp(18px, 4vw, 56px) 72px;
       background:
@@ -195,6 +212,14 @@ def render_page():
     }}
 
     .hero-content {{ max-width: 640px; }}
+
+    .hero-poster {{
+      display: block;
+      min-height: 430px;
+      border-radius: 8px;
+      box-shadow: 0 28px 80px rgba(0,0,0,.55);
+      transform: rotate(2deg);
+    }}
 
     h1 {{
       margin: 0 0 14px;
@@ -249,15 +274,15 @@ def render_page():
     .rail {{
       display: grid;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(210px, 1fr);
-      gap: 12px;
+      grid-auto-columns: minmax(190px, 210px);
+      gap: 16px;
       overflow-x: auto;
       padding-bottom: 12px;
       scrollbar-color: #555 transparent;
     }}
 
     .card {{
-      min-height: 162px;
+      min-height: 332px;
       border-radius: 6px;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -272,14 +297,63 @@ def render_page():
     }}
 
     .poster {{
-      height: 98px;
-      display: grid;
-      place-items: center;
-      padding: 12px;
-      background: linear-gradient(135deg, var(--movie-color), #111 70%);
-      font-size: 1.05rem;
+      position: relative;
+      min-height: 276px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 24% 20%, rgba(255,255,255,.42), transparent 14%),
+        radial-gradient(circle at 72% 34%, var(--movie-accent), transparent 20%),
+        linear-gradient(145deg, var(--movie-color), #080808 68%);
+      text-align: left;
+    }}
+
+    .poster::before {{
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 5px;
+    }}
+
+    .poster::after {{
+      content: "";
+      position: absolute;
+      inset: auto -20% 18% -20%;
+      height: 90px;
+      background: rgba(255,255,255,.08);
+      transform: rotate(-12deg);
+    }}
+
+    .poster-top,
+    .poster-bottom {{
+      position: relative;
+      z-index: 1;
+    }}
+
+    .poster-kicker {{
+      color: rgba(255,255,255,.82);
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }}
+
+    .poster-title {{
+      margin-top: auto;
+      font-size: 1.36rem;
+      line-height: 1;
       font-weight: 900;
-      text-align: center;
+      text-transform: uppercase;
+    }}
+
+    .poster-tag {{
+      margin-top: 8px;
+      color: rgba(255,255,255,.78);
+      font-size: .76rem;
+      font-weight: 700;
     }}
 
     .card-body {{ padding: 10px 12px 12px; }}
@@ -299,7 +373,9 @@ def render_page():
 
     .modal-art {{
       min-height: 210px;
-      background: linear-gradient(135deg, var(--movie-color), #111 70%);
+      background:
+        radial-gradient(circle at 74% 32%, var(--movie-accent), transparent 18%),
+        linear-gradient(135deg, var(--movie-color), #111 70%);
       padding: 24px;
       display: flex;
       align-items: end;
@@ -321,7 +397,8 @@ def render_page():
       .tools {{ width: 100%; margin-left: 0; }}
       input {{ flex: 1; width: auto; }}
       select {{ width: 124px; }}
-      .hero {{ min-height: 72vh; padding-top: 152px; }}
+      .hero {{ grid-template-columns: 1fr; min-height: 72vh; padding-top: 152px; }}
+      .hero-poster {{ display: none; }}
       .rail {{ grid-auto-columns: minmax(170px, 72vw); }}
     }}
   </style>
@@ -359,6 +436,7 @@ def render_page():
         <button class="secondary" data-list="{hero["id"]}">+ My List</button>
       </div>
     </div>
+    {render_poster(hero, "hero-poster")}
   </section>
 
   <main id="catalog">
@@ -397,6 +475,7 @@ def render_page():
       const movie = movies.find(item => item.id === Number(id));
       if (!movie) return;
       dialog.style.setProperty("--movie-color", movie.color);
+      dialog.style.setProperty("--movie-accent", movie.accent);
       document.querySelector("#modal-title").textContent = movie.title;
       document.querySelector("#modal-meta").innerHTML = `<span class="match">${{movie.match}}% Match</span><span>${{movie.year}}</span><span>${{movie.rating}}</span><span>${{movie.genre}}</span><span>${{movie.duration}}</span>`;
       document.querySelector("#modal-description").textContent = movie.description;
@@ -417,7 +496,7 @@ def render_page():
 
     function renderListButtons() {{
       document.querySelectorAll("[data-list]").forEach(button => {{
-        button.textContent = watchlist.has(Number(button.dataset.list)) ? "✓ My List" : "+ My List";
+        button.textContent = watchlist.has(Number(button.dataset.list)) ? "In My List" : "+ My List";
       }});
     }}
 
@@ -466,9 +545,9 @@ def render_row(title, movies):
 
 
 def render_card(movie):
-    style = f' style="--movie-color: {movie["color"]}"'
+    style = f' style="--movie-color: {movie["color"]}; --movie-accent: {movie["accent"]}"'
     return f"""<article class="card" data-open="{movie["id"]}" data-title="{movie["title"]}" data-genre="{movie["genre"]}"{style}>
-      <div class="poster">{movie["title"]}</div>
+      {render_poster(movie)}
       <div class="card-body">
         <div class="card-title">{movie["title"]}</div>
         <div class="meta">
@@ -478,6 +557,18 @@ def render_card(movie):
         </div>
       </div>
     </article>"""
+
+
+def render_poster(movie, class_name="poster"):
+    return f"""<div class="{class_name}" style="--movie-color: {movie["color"]}; --movie-accent: {movie["accent"]}">
+        <div class="poster-top">
+          <div class="poster-kicker">{movie["genre"]} / {movie["year"]}</div>
+        </div>
+        <div class="poster-bottom">
+          <div class="poster-title">{movie["title"]}</div>
+          <div class="poster-tag">{movie["poster_tag"]}</div>
+        </div>
+      </div>"""
 
 
 class NitflixHandler(BaseHTTPRequestHandler):
