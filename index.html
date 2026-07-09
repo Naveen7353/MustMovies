@@ -266,6 +266,72 @@
       margin: 34px 0;
     }
 
+    .manager {
+      margin: 34px clamp(18px, 4vw, 56px) 0;
+      padding: 22px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #0d0d0d;
+    }
+
+    .manager summary {
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 1.15rem;
+    }
+
+    .movie-form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .movie-form label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 800;
+    }
+
+    .movie-form input,
+    .movie-form select {
+      width: 100%;
+    }
+
+    .movie-form .wide {
+      grid-column: span 2;
+    }
+
+    .movie-form .full {
+      grid-column: 1 / -1;
+    }
+
+    .form-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.45;
+    }
+
+    .player-frame,
+    .player-video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      background: #000;
+    }
+
     @media (max-width: 720px) {
       header { align-items: flex-start; flex-direction: column; gap: 12px; }
       nav { display: none; }
@@ -275,6 +341,9 @@
       .hero { grid-template-columns: 1fr; min-height: 72vh; padding-top: 152px; }
       .hero-poster { display: none; }
       .rail { grid-auto-columns: minmax(170px, 72vw); }
+      .movie-form { grid-template-columns: 1fr; }
+      .movie-form .wide,
+      .movie-form .full { grid-column: auto; }
     }
   </style>
 </head>
@@ -301,6 +370,50 @@
     <p class="empty" id="empty">No titles match your search.</p>
   </main>
 
+  <details class="manager">
+    <summary>Add movie</summary>
+    <form class="movie-form" id="movie-form">
+      <label>Title
+        <input name="title" required placeholder="Movie title">
+      </label>
+      <label>Genre
+        <input name="genre" required placeholder="Action">
+      </label>
+      <label>Year
+        <input name="year" required type="number" min="1900" max="2100" value="2026">
+      </label>
+      <label>Rating
+        <input name="rating" required placeholder="PG-13">
+      </label>
+      <label>Duration
+        <input name="duration" required placeholder="1h 45m">
+      </label>
+      <label>Match %
+        <input name="match" required type="number" min="1" max="100" value="90">
+      </label>
+      <label>Poster color
+        <input name="color" required type="color" value="#c1121f">
+      </label>
+      <label>Accent color
+        <input name="accent" required type="color" value="#facc15">
+      </label>
+      <label class="wide">Video URL
+        <input name="videoUrl" required placeholder="YouTube, Vimeo, Internet Archive, or direct MP4 link">
+      </label>
+      <label class="wide">Poster tagline
+        <input name="posterTag" required placeholder="Short poster line">
+      </label>
+      <label class="full">Description
+        <input name="description" required placeholder="Short movie description">
+      </label>
+      <div class="form-actions">
+        <button class="play" type="submit">Add Movie</button>
+        <button class="secondary" type="button" id="reset-local">Clear Added Movies</button>
+      </div>
+    </form>
+    <p class="hint">Use only videos you own, have permission to share, or that are legally public/embeddable. GitHub Pages hosts this app for free; the video files should live on a legal video host.</p>
+  </details>
+
   <dialog id="details">
     <div class="modal-art">
       <h3 id="modal-title"></h3>
@@ -309,37 +422,46 @@
       <div class="meta" id="modal-meta"></div>
       <p id="modal-description"></p>
       <div class="actions">
-        <button class="play">Play</button>
+        <button class="play" id="modal-play">Play</button>
         <button class="secondary" id="modal-list">+ My List</button>
         <button class="secondary" id="close">Close</button>
       </div>
     </div>
   </dialog>
 
+  <dialog id="player">
+    <div id="player-area"></div>
+    <div class="modal-body">
+      <h3 id="player-title"></h3>
+      <div class="actions">
+        <button class="secondary" id="close-player">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <script>
-    const movies = [
-      { id: 1, title: "Midnight Signal", year: 2026, rating: "TV-14", genre: "Sci-Fi", duration: "1h 54m", match: 98, description: "A radio engineer catches a future broadcast and races to stop a citywide blackout.", color: "#c1121f", accent: "#facc15", posterTag: "Future transmission" },
-      { id: 2, title: "The Last Monsoon", year: 2025, rating: "PG-13", genre: "Drama", duration: "2h 08m", match: 95, description: "Three strangers meet on a delayed train as the rain changes the course of their lives.", color: "#0f766e", accent: "#f97316", posterTag: "Rain changes everything" },
-      { id: 3, title: "Code Red City", year: 2026, rating: "TV-MA", genre: "Action", duration: "1h 47m", match: 93, description: "A retired driver returns for one impossible night job through a locked-down metropolis.", color: "#991b1b", accent: "#38bdf8", posterTag: "One night. No rules." },
-      { id: 4, title: "Cafe Comet", year: 2024, rating: "U/A", genre: "Comedy", duration: "1h 31m", match: 90, description: "A tiny coffee shop becomes the meeting point for people with wonderfully bad timing.", color: "#b45309", accent: "#fde68a", posterTag: "Fresh chaos daily" },
-      { id: 5, title: "North Door", year: 2025, rating: "TV-14", genre: "Thriller", duration: "1h 59m", match: 96, description: "A journalist finds one door in an old hotel that appears in a different place every night.", color: "#334155", accent: "#e2e8f0", posterTag: "Do not open it" },
-      { id: 6, title: "Pixel Hearts", year: 2026, rating: "PG", genre: "Romance", duration: "1h 42m", match: 91, description: "Two indie game developers fall in love while building a project that keeps breaking.", color: "#be185d", accent: "#86efac", posterTag: "Love needs debugging" },
-      { id: 7, title: "Deep Orbit", year: 2023, rating: "TV-PG", genre: "Sci-Fi", duration: "2h 16m", match: 89, description: "A rescue crew reaches a silent research station and discovers it was never abandoned.", color: "#1d4ed8", accent: "#c4b5fd", posterTag: "Silence has gravity" },
-      { id: 8, title: "Street Food Kings", year: 2026, rating: "TV-G", genre: "Documentary", duration: "48m", match: 94, description: "Vendors across India share the craft, pressure, and pride behind their signature dishes.", color: "#15803d", accent: "#fbbf24", posterTag: "Served hot" }
+    const demoVideoUrl = "https://archive.org/embed/Sintel";
+    const defaultMovies = [
+      { id: 1, title: "Midnight Signal", year: 2026, rating: "TV-14", genre: "Sci-Fi", duration: "1h 54m", match: 98, description: "A radio engineer catches a future broadcast and races to stop a citywide blackout.", color: "#c1121f", accent: "#facc15", posterTag: "Future transmission", videoUrl: demoVideoUrl },
+      { id: 2, title: "The Last Monsoon", year: 2025, rating: "PG-13", genre: "Drama", duration: "2h 08m", match: 95, description: "Three strangers meet on a delayed train as the rain changes the course of their lives.", color: "#0f766e", accent: "#f97316", posterTag: "Rain changes everything", videoUrl: demoVideoUrl },
+      { id: 3, title: "Code Red City", year: 2026, rating: "TV-MA", genre: "Action", duration: "1h 47m", match: 93, description: "A retired driver returns for one impossible night job through a locked-down metropolis.", color: "#991b1b", accent: "#38bdf8", posterTag: "One night. No rules.", videoUrl: demoVideoUrl },
+      { id: 4, title: "Cafe Comet", year: 2024, rating: "U/A", genre: "Comedy", duration: "1h 31m", match: 90, description: "A tiny coffee shop becomes the meeting point for people with wonderfully bad timing.", color: "#b45309", accent: "#fde68a", posterTag: "Fresh chaos daily", videoUrl: demoVideoUrl },
+      { id: 5, title: "North Door", year: 2025, rating: "TV-14", genre: "Thriller", duration: "1h 59m", match: 96, description: "A journalist finds one door in an old hotel that appears in a different place every night.", color: "#334155", accent: "#e2e8f0", posterTag: "Do not open it", videoUrl: demoVideoUrl },
+      { id: 6, title: "Pixel Hearts", year: 2026, rating: "PG", genre: "Romance", duration: "1h 42m", match: 91, description: "Two indie game developers fall in love while building a project that keeps breaking.", color: "#be185d", accent: "#86efac", posterTag: "Love needs debugging", videoUrl: demoVideoUrl },
+      { id: 7, title: "Deep Orbit", year: 2023, rating: "TV-PG", genre: "Sci-Fi", duration: "2h 16m", match: 89, description: "A rescue crew reaches a silent research station and discovers it was never abandoned.", color: "#1d4ed8", accent: "#c4b5fd", posterTag: "Silence has gravity", videoUrl: demoVideoUrl },
+      { id: 8, title: "Street Food Kings", year: 2026, rating: "TV-G", genre: "Documentary", duration: "48m", match: 94, description: "Vendors across India share the craft, pressure, and pride behind their signature dishes.", color: "#15803d", accent: "#fbbf24", posterTag: "Served hot", videoUrl: demoVideoUrl }
     ];
 
-    const rows = {
-      "Trending Now": [...movies].sort((a, b) => b.match - a.match).slice(0, 5),
-      "New Releases": [...movies].sort((a, b) => b.year - a.year).slice(0, 5),
-      "Because You Like Thrillers": movies.filter(movie => ["Thriller", "Action", "Sci-Fi"].includes(movie.genre)),
-      "Feel Good Picks": movies.filter(movie => ["Comedy", "Romance", "Documentary"].includes(movie.genre))
-    };
+    let addedMovies = JSON.parse(localStorage.getItem("addedMovies") || "[]");
+    let movies = [...defaultMovies, ...addedMovies];
 
     const search = document.querySelector("#search");
     const genre = document.querySelector("#genre");
     const empty = document.querySelector("#empty");
     const catalog = document.querySelector("#catalog");
     const dialog = document.querySelector("#details");
+    const player = document.querySelector("#player");
+    const playerArea = document.querySelector("#player-area");
     const watchlist = new Set(JSON.parse(localStorage.getItem("watchlist") || "[]"));
 
     function poster(movie, className = "poster") {
@@ -381,7 +503,7 @@
         </div>
         <p>${hero.description}</p>
         <div class="actions">
-          <button class="play" data-open="${hero.id}">Play</button>
+          <button class="play" data-play="${hero.id}">Play</button>
           <button class="secondary" data-list="${hero.id}">+ My List</button>
         </div>
       </div>
@@ -389,7 +511,17 @@
     }
 
     function renderRows() {
+      document.querySelectorAll(".row").forEach(row => row.remove());
+      const rows = {
+        "Trending Now": [...movies].sort((a, b) => b.match - a.match).slice(0, 8),
+        "New Releases": [...movies].sort((a, b) => b.year - a.year).slice(0, 8),
+        "Because You Like Thrillers": movies.filter(movie => ["Thriller", "Action", "Sci-Fi"].includes(movie.genre)),
+        "Feel Good Picks": movies.filter(movie => ["Comedy", "Romance", "Documentary"].includes(movie.genre)),
+        "Your Added Movies": addedMovies
+      };
+
       Object.entries(rows).forEach(([title, rowMovies]) => {
+        if (!rowMovies.length) return;
         const section = document.createElement("section");
         section.className = "row";
         section.innerHTML = `<h2>${title}</h2><div class="rail">${rowMovies.map(card).join("")}</div>`;
@@ -398,12 +530,26 @@
     }
 
     function renderGenres() {
+      genre.innerHTML = `<option value="">All genres</option>`;
       [...new Set(movies.map(movie => movie.genre))].sort().forEach(item => {
         const option = document.createElement("option");
         option.value = item;
         option.textContent = item;
         genre.appendChild(option);
       });
+    }
+
+    function saveAddedMovies() {
+      localStorage.setItem("addedMovies", JSON.stringify(addedMovies));
+    }
+
+    function refreshCatalog() {
+      movies = [...defaultMovies, ...addedMovies];
+      renderHero();
+      renderGenres();
+      renderRows();
+      renderListButtons();
+      filterCards();
     }
 
     function persistList() {
@@ -419,7 +565,43 @@
       document.querySelector("#modal-meta").innerHTML = `<span class="match">${movie.match}% Match</span><span>${movie.year}</span><span>${movie.rating}</span><span>${movie.genre}</span><span>${movie.duration}</span>`;
       document.querySelector("#modal-description").textContent = movie.description;
       document.querySelector("#modal-list").dataset.list = movie.id;
+      document.querySelector("#modal-play").dataset.play = movie.id;
       dialog.showModal();
+    }
+
+    function videoEmbedUrl(url) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes("youtube.com")) {
+          const id = parsed.searchParams.get("v");
+          return id ? `https://www.youtube.com/embed/${id}` : url;
+        }
+        if (parsed.hostname === "youtu.be") {
+          return `https://www.youtube.com/embed/${parsed.pathname.slice(1)}`;
+        }
+        if (parsed.hostname.includes("vimeo.com") && !parsed.hostname.includes("player.")) {
+          const id = parsed.pathname.split("/").filter(Boolean).pop();
+          return id ? `https://player.vimeo.com/video/${id}` : url;
+        }
+        return url;
+      } catch {
+        return url;
+      }
+    }
+
+    function isDirectVideo(url) {
+      return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+    }
+
+    function playMovie(id) {
+      const movie = movies.find(item => item.id === Number(id));
+      if (!movie || !movie.videoUrl) return;
+      const url = videoEmbedUrl(movie.videoUrl);
+      document.querySelector("#player-title").textContent = movie.title;
+      playerArea.innerHTML = isDirectVideo(url)
+        ? `<video class="player-video" src="${url}" controls autoplay playsinline></video>`
+        : `<iframe class="player-frame" src="${url}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+      player.showModal();
     }
 
     function toggleList(id) {
@@ -459,21 +641,53 @@
       empty.style.display = visibleCount ? "none" : "block";
     }
 
+    document.querySelector("#movie-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const movie = {
+        id: Date.now(),
+        title: data.title.trim(),
+        genre: data.genre.trim(),
+        year: Number(data.year),
+        rating: data.rating.trim(),
+        duration: data.duration.trim(),
+        match: Number(data.match),
+        color: data.color,
+        accent: data.accent,
+        videoUrl: data.videoUrl.trim(),
+        posterTag: data.posterTag.trim(),
+        description: data.description.trim()
+      };
+      addedMovies.push(movie);
+      saveAddedMovies();
+      event.currentTarget.reset();
+      refreshCatalog();
+    });
+
+    document.querySelector("#reset-local").addEventListener("click", () => {
+      addedMovies = [];
+      saveAddedMovies();
+      refreshCatalog();
+    });
+
     document.addEventListener("click", event => {
       const opener = event.target.closest("[data-open]");
       const listButton = event.target.closest("[data-list]");
+      const playButton = event.target.closest("[data-play]");
       if (opener) openMovie(opener.dataset.open);
       if (listButton) toggleList(listButton.dataset.list);
+      if (playButton) playMovie(playButton.dataset.play);
     });
 
     document.querySelector("#close").addEventListener("click", () => dialog.close());
+    document.querySelector("#close-player").addEventListener("click", () => {
+      player.close();
+      playerArea.innerHTML = "";
+    });
     search.addEventListener("input", filterCards);
     genre.addEventListener("change", filterCards);
 
-    renderHero();
-    renderGenres();
-    renderRows();
-    renderListButtons();
+    refreshCatalog();
   </script>
 </body>
 </html>
